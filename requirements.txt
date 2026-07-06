@@ -1,0 +1,10 @@
+# Backend (FastAPI)
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+pydantic[email]>=2.9.2
+bcrypt>=4.1.0
+pyjwt>=2.9.0
+requests>=2.32.3
+
+# Frontend (Streamlit)
+streamlit>=1.38.0
