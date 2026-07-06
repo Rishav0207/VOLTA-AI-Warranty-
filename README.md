@@ -33,7 +33,6 @@ VOLTA/
 └── README.md
 ```
 
-I skipped the `notebooks/` folder from the usual template since there's no data science/EDA part to this — it's an app, not a model.
 
 ## How to run it
 
@@ -43,11 +42,20 @@ Run these two commands from the repo root:
 ```bash
 cd src && pip install -r ../requirements.txt && uvicorn main:app --reload --port 8000
 ```
+First time you run this it'll create `data/warranty_tracker.db` and seed it with:
+- an admin login (`admin` / `admin123`)
+- 5 sample products (washing machine, fridge, TV, laptop, microwave) each with its own warranty rules
 
+API docs at `http://localhost:8000/docs` if you want to poke around.
 ### Frontend
 ```bash
 pip install -r requirements.txt && streamlit run app/app.py
 ```
+
+For real AI analysis instead of the fallback, install Ollama and leave it running in the background:
+1. Install Ollama: https://ollama.com
+2. Run `ollama pull llama3.1` (this is the default model used by the backend; if you use a different one, set the `OLLAMA_MODEL` environment variable to match)
+3. Leave Ollama running on its default host (`http://localhost:11434`) or set `OLLAMA_HOST` if yours is different
 
 The backend will create the local SQLite database on first run, and the frontend will open on the Streamlit URL shown in the terminal.
 
