@@ -37,9 +37,9 @@ custom_css = f"""
 
 /* theme vars */
 :root {{
-    color-scheme: dark light;
-    --app-overlay: rgba(12, 12, 13, 0.86);
-    --app-overlay-strong: rgba(12, 12, 13, 0.95);
+    color-scheme: dark;
+    --app-overlay: rgba(4, 8, 14, 0.18);
+    --app-overlay-strong: rgba(4, 8, 14, 0.28);
     --surface: rgba(255, 255, 255, 0.05);
     --surface-strong: rgba(255, 255, 255, 0.09);
     --surface-soft: rgba(255, 255, 255, 0.05);
@@ -55,29 +55,10 @@ custom_css = f"""
     --glass-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
 }}
 
-@media (prefers-color-scheme: light) {{
-    :root {{
-        --app-overlay: rgba(247, 247, 246, 0.88);
-        --app-overlay-strong: rgba(250, 250, 249, 0.96);
-        --surface: rgba(255, 255, 255, 0.55);
-        --surface-strong: rgba(255, 255, 255, 0.78);
-        --surface-soft: rgba(22, 22, 24, 0.05);
-        --text-primary: #1a1b1e;
-        --text-secondary: #6b6f76;
-        --text-muted: #7b7f86;
-        --border-color: rgba(22, 22, 24, 0.10);
-        --border-color-strong: rgba(22, 22, 24, 0.18);
-        --sheen: rgba(255, 255, 255, 0.55);
-        --accent: #7c8590;
-        --accent-strong: #5b6169;
-        --glass-shadow: 0 20px 45px -14px rgba(22, 22, 24, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(22, 22, 24, 0.05);
-    }}
-}}
-
 /* Global Reset & Background */
 html, body, [data-testid="stAppViewContainer"], .stApp {{
     font-family: 'Outfit', sans-serif !important;
-    background: linear-gradient(var(--app-overlay), var(--app-overlay-strong)), 
+    background: linear-gradient(135deg, var(--app-overlay), var(--app-overlay-strong)),
                 url('{tech_bg_base64}') no-repeat center center fixed !important;
     background-size: cover !important;
     color: var(--text-primary) !important;
@@ -504,22 +485,6 @@ def show_login_page():
                     Demo Admin Account: username <b>admin</b> / password <b>admin123</b>
                 </div>
                 """, unsafe_allow_html=True)
-
-                # Social logins
-                st.markdown("<div style='text-align: center; margin-bottom: 15px; color: #7b7f86; font-size: 0.8rem;'>or continue with</div>", unsafe_allow_html=True)
-                col_s1, col_s2 = st.columns(2)
-                with col_s1:
-                    st.markdown('<div class="google-btn-wrapper">', unsafe_allow_html=True)
-                    google_click = st.button("Google", use_container_width=True, key="google_login")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    if google_click:
-                        st.toast("Google SSO is currently mocked for this prototype.", icon="🔑")
-                with col_s2:
-                    st.markdown('<div class="ms-btn-wrapper">', unsafe_allow_html=True)
-                    ms_click = st.button("Microsoft", use_container_width=True, key="ms_login")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    if ms_click:
-                        st.toast("Microsoft SSO is currently mocked for this prototype.", icon="🔑")
 
             with tab_register:
                 with st.form("register_form", border=False):
