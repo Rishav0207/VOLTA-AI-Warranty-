@@ -35,34 +35,21 @@ VOLTA/
 
 I skipped the `notebooks/` folder from the usual template since there's no data science/EDA part to this — it's an app, not a model.
 
-## How to actually run it
+## How to run it
 
-### Backend first
+Run these two commands from the repo root:
+
+### Backend
 ```bash
-cd src
-pip install -r ../requirements.txt
-
-# if you want real AI analysis instead of the fallback:
-#   1. install Ollama: https://ollama.com
-#   2. ollama pull llama3.1 (this is the default model ai_service.py looks for —
-#      if you pull a different one, set the OLLAMA_MODEL env var to match)
-#   3. just leave Ollama running in the background (defaults to http://localhost:11434,
-#      override with OLLAMA_HOST if yours runs elsewhere)
-
-uvicorn main:app --reload --port 8000
+cd src && pip install -r ../requirements.txt && uvicorn main:app --reload --port 8000
 ```
-First time you run this it'll create `data/warranty_tracker.db` and seed it with:
-- an admin login (`admin` / `admin123`)
-- 5 sample products (washing machine, fridge, TV, laptop, microwave) each with its own warranty rules
 
-API docs at `http://localhost:8000/docs` if you want to poke around.
-
-### Then the frontend (new terminal, from the repo root — don't cd into app/)
+### Frontend
 ```bash
-pip install -r requirements.txt
-streamlit run app/app.py
+pip install -r requirements.txt && streamlit run app/app.py
 ```
-Opens at whatever localhost URL Streamlit prints (usually `:8501`).
+
+The backend will create the local SQLite database on first run, and the frontend will open on the Streamlit URL shown in the terminal.
 
 ## How it actually works
 1. Login screen with two tabs — login and register (only customers can self-register, admin is seeded in).
