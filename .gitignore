@@ -1,5 +1,7 @@
 # Python
+.git/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
@@ -8,12 +10,14 @@ venv/
 env/
 *.egg-info/
 .pytest_cache/
+**/.pytest_cache/
 .mypy_cache/
 .coverage
 htmlcov/
 
 # OS
 .DS_Store
+**/.DS_Store
 Thumbs.db
 
 # Editor
