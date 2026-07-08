@@ -1,85 +1,155 @@
-# VOLTA — Smart Warranty & Service Tracker
+# VOLTA - AI Warranty Intelligence Platform
 
-I built this as part of my SDAI Himshikhar program at IIT Mandi. The idea is simple: most people (including me) never remember when they bought something or what the warranty actually covers, so when a product breaks you're just guessing whether it's covered or not. VOLTA fixes that — customers register their products when they buy them, and when something goes wrong they file a request and get an instant AI read on whether it's likely covered, based on that product's actual warranty terms. Admins get a dashboard to review and close out all the requests.
+VOLTA is an AI-assisted warranty and service platform built with FastAPI, Streamlit, SQLite, and a local-first warranty intelligence pipeline. It keeps the original customer/admin workflows intact while adding production-style architecture, explainable AI output, semantic search, QR product pages, OCR invoice extraction, fraud scoring, audit logs, analytics, Docker, and tests.
 
-## What it's built with
-- **Frontend:** Streamlit — went with a neutral, frosted-glass look instead of the usual neon dashboard style
-- **Backend:** FastAPI
-- **DB:** plain SQLite, no ORM, so I could actually see and control the schema myself
-- **AI:** runs locally through Ollama for the warranty analysis, with a rule-based fallback if Ollama isn't running
+## Highlights
 
-## Folder structure
-```
-VOLTA/
-│
-├── data/
-│   └── warranty_tracker.db     # gets created + seeded automatically the first time you run it
-│
-├── src/                        # FastAPI backend
-│   ├── main.py                 # all the API routes
-│   ├── database.py             # schema + seed data
-│   ├── auth.py                 # login/JWT stuff
-│   ├── schemas.py               # request/response models
-│   └── ai_service.py            # talks to Ollama for the warranty verdict
-│
-├── app/                        # Streamlit frontend
-│   ├── app.py
-│   └── assets/                 # logo + product images
-│
-├── docs/
-│   └── project_report.md       # writeup of how I approached this
-│
-├── requirements.txt
-└── README.md
+- Customer registration, JWT login, refresh tokens, role-based access, and rate limiting.
+- Product registration with warranty calculation, QR token generation, warranty health scoring, and product timelines through history tables.
+- Explainable AI claim analysis with retrieved warranty clauses, confidence score, missing documents, fraud risk, approval probability, predictive insights, and maintenance advice.
+- Offline semantic retrieval using deterministic sparse embeddings, with optional Ollama JSON reasoning when available.
+- OCR-style invoice text extraction for invoice number, purchase date, seller, serial, model, warranty duration, price, GST, and customer name.
+- Admin analytics for users, products, claims, fraud alerts, approval rate, top manufacturers, and monthly registrations.
+- Backward-compatible legacy routes plus versioned `/api/v1` routes.
+
+## Architecture
+
+```text
+app/ Streamlit UI
+src/
+  api/v1/          versioned FastAPI routers
+  config/          environment settings
+  database/        SQLite connections, migrations, seed data
+  middleware/      rate limiting
+  models/          domain model area
+  repositories/    SQL data access
+  schemas/         Pydantic request/response contracts
+  security/        password hashing, JWT, refresh tokens
+  services/        AI, OCR, QR, analytics business logic
+  utils/           dates and logging
+tests/             API and AI pipeline tests
+docs/diagrams/     Mermaid architecture, ER, sequence diagrams
 ```
 
+See diagrams:
 
-## How to run it
+- [Architecture](docs/diagrams/architecture.md)
+- [ER Diagram](docs/diagrams/er-diagram.md)
+- [Sequence Diagrams](docs/diagrams/sequences.md)
 
-Run these two commands from the repo root:
+## AI Pipeline
 
-### Backend
+```text
+Invoice/OCR Text -> Field Extraction -> Validation -> Clause Chunking
+-> Embeddings -> Vector Retrieval -> Prompt Contract -> Ollama LLM
+-> Structured JSON -> Confidence/Fraud/Health Output
+```
+
+The platform stores warranty clauses as vectorized chunks in SQLite. Query-time retrieval ranks clauses semantically before analysis. If Ollama is unavailable, the deterministic local analyzer still returns a complete, structured response.
+
+## Run Locally
+
 ```bash
-cd src && pip install -r ../requirements.txt && uvicorn main:app --reload --port 8000
+pip install -r requirements.txt
+cd src
+uvicorn main:app --reload --port 8000
 ```
-First time you run this it'll create `data/warranty_tracker.db` and seed it with:
-- an admin login (`admin` / `admin123`)
-- 5 sample products (washing machine, fridge, TV, laptop, microwave) each with its own warranty rules
 
-API docs at `http://localhost:8000/docs` if you want to poke around.
-### Frontend
+Frontend:
+
 ```bash
-pip install -r requirements.txt && streamlit run app/app.py
+streamlit run app/app.py
 ```
 
-For real AI analysis instead of the fallback, install Ollama and leave it running in the background:
-1. Install Ollama: https://ollama.com
-2. Run `ollama pull llama3.1` (this is the default model used by the backend; if you use a different one, set the `OLLAMA_MODEL` environment variable to match)
-3. Leave Ollama running on its default host (`http://localhost:11434`) or set `OLLAMA_HOST` if yours is different
+Default seeded admin:
 
-The backend will create the local SQLite database on first run, and the frontend will open on the Streamlit URL shown in the terminal.
+```text
+username: admin
+password: admin123
+```
 
-## How it actually works
-1. Login screen with two tabs — login and register (only customers can self-register, admin is seeded in).
-2. Customer picks a product from the catalog, registers it with a serial number and purchase date, and the warranty window gets calculated automatically off that product's template.
-3. When they raise a service request, the backend sends the issue description + that product's coverage/exclusion text to the local LLM, which comes back with a verdict (`LIKELY_COVERED` / `LIKELY_NOT_COVERED` / `NEEDS_INSPECTION`), an explanation, and a list of documents they'd need.
-4. Admin sees every request across all customers, can filter by status, read the same AI verdict, add notes, and move the ticket along.
+API docs are available at `http://localhost:8000/docs`.
 
-## Why it looks the way it does
-I wanted the UI to feel calmer than the typical cyan-on-black "hacker dashboard" look most of these projects end up with. So everything's frosted glass panels with layered blur, a soft light sheen along the top edge of each card, and toned-down colors — muted silver-grey as the main accent, and soft gold/sage/rust for status states instead of bright yellow/green/red.
+## Configuration
 
-## What's done vs. what I still want to add
-**Done:** login/auth with JWT and roles, product catalog + registration with auto warranty calc, service requests with AI analysis, admin dashboard with filtering, notes, and status updates.
+Copy `.env.example` to `.env` and adjust:
 
-**Still on my list:**
-- actual file upload for proof of purchase / photos (the `documents` table is already there, just not wired up)
-- automated tests
-- email notifications on status change
-- deploying this somewhere instead of just running it locally
+```bash
+VOLTA_ENV=development
+DATABASE_URL=sqlite:///data/warranty_tracker.db
+WARRANTY_APP_SECRET=change-this-secret-before-production
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3.1
+ALLOWED_ORIGINS=http://localhost:8501,http://127.0.0.1:8501
+RATE_LIMIT_PER_MINUTE=120
+```
 
-## A few honest caveats
-- The AI verdict is meant to speed up triage, not replace a human — someone should still sanity-check before rejecting a claim.
-- If Ollama isn't running, it falls back to basic keyword matching, which doesn't really understand negation (there's a comment about this in `ai_service.py`). Get Ollama running for it to actually work well.
-- Smaller local models are inconsistent about returning clean JSON — `ai_service.py` strips out code fences/preambles and checks the required fields before trusting the output, and falls back to the rule-based method if it can't parse it.
-- Change the default admin password before you show this to anyone outside your laptop.
-- The JWT secret is set via the `WARRANTY_APP_SECRET` env variable — the code has a dev default baked in, don't ship that as-is.
+For enhanced LLM reasoning:
+
+```bash
+ollama pull llama3.1
+ollama serve
+```
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+Backend: `http://localhost:8000`  
+Frontend: `http://localhost:8501`
+
+## API Surface
+
+Core legacy and versioned routes are both supported:
+
+- `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`
+- `GET /products`, `GET /products/{id}`
+- `POST /customer/register-product`, `GET /customer/my-products`
+- `POST /customer/service-requests`, `GET /customer/service-requests`
+- `GET /admin/service-requests`, `PATCH /admin/service-requests/{id}`
+- `GET /admin/analytics`
+- `POST /api/v1/ai/search`
+- `POST /api/v1/ocr/extract`
+- `GET /api/v1/products/{customer_product_id}/qr`
+- `GET /api/v1/qr/{token}`
+- `GET /health`
+
+## Database
+
+The schema includes normalized operational and intelligence tables:
+
+- `users`, `refresh_tokens`, `products`, `warranty_templates`, `warranty_clauses`
+- `customer_products`, `service_requests`, `documents`
+- `audit_logs`, `product_history`, `warranty_claim_history`, `repair_history`, `user_activity_logs`
+
+Migrations are additive and safe for the existing SQLite database.
+
+## Testing
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
+Tests cover authentication, refresh tokens, product registration, AI claim creation, semantic search, and OCR extraction.
+
+## Deployment Notes
+
+- Set a strong `WARRANTY_APP_SECRET`.
+- Restrict `ALLOWED_ORIGINS` to trusted frontend URLs.
+- Mount `data/` as persistent storage.
+- Run behind HTTPS in production.
+- Replace the default admin password before external demos.
+
+## Future Scope
+
+- Real file upload OCR with Tesseract or a cloud OCR provider.
+- FAISS/ChromaDB adapter for large warranty corpora.
+- Email/SMS warranty expiry notifications.
+- Multi-tenant manufacturer dashboards.
+- Object storage for invoice images and ZIP uploads.
+
+## License
+
+Academic MVP / portfolio project. Add an organization-specific license before commercial use.

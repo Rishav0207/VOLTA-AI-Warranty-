@@ -1,10 +1,9 @@
-"""Backward-compatible security exports for older imports."""
+"""Security helpers."""
 
-from security.auth import (
+from .auth import (
     create_access_token,
     create_refresh_token,
     decode_access_token,
-    exchange_refresh_token,
     get_current_user,
     hash_password,
     require_role,
@@ -15,7 +14,6 @@ __all__ = [
     "create_access_token",
     "create_refresh_token",
     "decode_access_token",
-    "exchange_refresh_token",
     "get_current_user",
     "hash_password",
     "require_role",

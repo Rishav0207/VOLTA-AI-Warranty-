@@ -6,6 +6,8 @@ Run with: streamlit run app.py
 """
 
 import base64
+import html
+import json
 import requests
 import streamlit as st
 from datetime import date
@@ -53,6 +55,12 @@ custom_css = f"""
     --accent-strong: #7c8590;
     --glass-blur: blur(28px) saturate(150%);
     --glass-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}}
+
+div[data-testid="stAppViewBlockContainer"] {{
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+    max-width: 1280px !important;
 }}
 
 /* Global Reset & Background */
@@ -289,22 +297,23 @@ div[data-testid="stMetricLabel"] {{
     letter-spacing: 0.05em !important;
 }}
 div[data-testid="stMetric"] {{
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)) !important;
     backdrop-filter: blur(14px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(14px) saturate(130%) !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: 14px !important;
-    padding: 12px 20px !important;
+    border-radius: 12px !important;
+    min-height: 104px !important;
+    padding: 14px 20px !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }}
 
 /* expanders */
 div[data-testid="stExpander"] {{
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.028)) !important;
     backdrop-filter: blur(16px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: 14px !important;
+    border-radius: 12px !important;
     margin-bottom: 12px !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }}
@@ -406,6 +415,102 @@ div[data-testid="stContainer"]:has(.product-card.selected) button {{
     color: #e6e7e9 !important;
     font-size: 0.95rem !important;
 }}
+
+.page-kicker {{
+    color: #aab3bd !important;
+    font-size: 0.76rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important;
+    font-weight: 700 !important;
+    margin-bottom: 6px !important;
+}}
+
+.page-title {{
+    margin: 0 !important;
+    font-size: 1.9rem !important;
+    font-weight: 760 !important;
+    color: #ffffff !important;
+}}
+
+.page-subtitle {{
+    color: #9a9da3 !important;
+    font-size: 0.95rem !important;
+    margin-top: 7px !important;
+    max-width: 760px !important;
+}}
+
+.page-header {{
+    margin-bottom: 22px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    padding-bottom: 16px !important;
+}}
+
+.status-pill {{
+    display: inline-flex !important;
+    align-items: center !important;
+    border-radius: 999px !important;
+    padding: 4px 11px !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+}}
+
+.ai-panel {{
+    background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(0,0,0,0.12)) !important;
+    border: 1px solid rgba(255,255,255,0.09) !important;
+    border-left: 3px solid var(--panel-accent, #aab3bd) !important;
+    border-radius: 10px !important;
+    padding: 16px !important;
+    margin-bottom: 14px !important;
+}}
+
+.ai-eyebrow {{
+    font-size: 0.72rem !important;
+    color: #9a9da3 !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+}}
+
+.ai-status {{
+    color: #ffffff !important;
+    font-size: 1.08rem !important;
+    font-weight: 760 !important;
+    margin-top: 4px !important;
+}}
+
+.ai-reason {{
+    color: #d6d7da !important;
+    font-size: 0.92rem !important;
+    line-height: 1.55 !important;
+    margin-top: 9px !important;
+}}
+
+.ai-next {{
+    color: var(--panel-accent, #aab3bd) !important;
+    font-size: 0.86rem !important;
+    font-weight: 650 !important;
+    margin-top: 12px !important;
+}}
+
+.empty-state {{
+    border: 1px dashed rgba(255,255,255,0.14) !important;
+    border-radius: 12px !important;
+    padding: 28px !important;
+    text-align: center !important;
+    color: #9a9da3 !important;
+    background: rgba(255,255,255,0.025) !important;
+}}
+
+.qr-shell svg {{
+    width: 180px !important;
+    height: 180px !important;
+    background: #ffffff !important;
+    border-radius: 10px !important;
+    padding: 10px !important;
+}}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -436,6 +541,150 @@ def logout():
     st.rerun()
 
 
+def safe_text(value):
+    """Escape dynamic text before placing it inside custom HTML."""
+    return html.escape(str(value or ""))
+
+
+def parse_ai_explanation(ticket):
+    """Return the structured AI explanation from new or legacy API payloads."""
+    if ticket.get("ai_explanation"):
+        return ticket["ai_explanation"]
+    raw = ticket.get("ai_analysis")
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {
+                "coverage_status": "LEGACY_ANALYSIS",
+                "confidence_score": 50,
+                "relevant_warranty_clauses": [],
+                "reasoning": raw,
+                "applicable_conditions": [],
+                "missing_documents": [],
+                "recommended_next_action": "Review this claim manually.",
+                "estimated_approval_probability": ticket.get("approval_probability", 50),
+                "fraud_risk_score": ticket.get("fraud_score", 0),
+                "fraud_signals": [],
+                "predictive_insights": [],
+                "maintenance_advice": [],
+            }
+    return {}
+
+
+def render_score_bar(label, value, color="#aab3bd"):
+    """Render a compact score bar that matches the existing visual style."""
+    value = max(0, min(100, int(value or 0)))
+    st.markdown(f"""
+    <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; color: #9a9da3; font-size: 0.82rem; margin-bottom: 6px;">
+            <span>{safe_text(label)}</span><span style="color: {color}; font-weight: 700;">{value}%</span>
+        </div>
+        <div style="height: 8px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden;">
+            <div style="height: 100%; width: {value}%; background: {color}; border-radius: 999px;"></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_page_header(title, subtitle, kicker="Volta Console"):
+    """Render a consistent page header."""
+    st.markdown(f"""
+    <div class="page-header">
+        <div class="page-kicker">{safe_text(kicker)}</div>
+        <h2 class="page-title">{safe_text(title)}</h2>
+        <div class="page-subtitle">{safe_text(subtitle)}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_empty_state(title, message):
+    """Render a calm empty state instead of a bare info box."""
+    st.markdown(f"""
+    <div class="empty-state">
+        <div style="font-weight: 720; color: #ffffff; margin-bottom: 6px;">{safe_text(title)}</div>
+        <div>{safe_text(message)}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_status_pill(label, background, color):
+    """Render a small status badge."""
+    return (
+        f'<span class="status-pill" style="background-color: {background}; color: {color};">'
+        f"{safe_text(label)}</span>"
+    )
+
+
+def render_ai_analysis(ticket, accent="#aab3bd"):
+    """Render the upgraded explainable warranty analysis."""
+    ai = parse_ai_explanation(ticket)
+    if not ai:
+        st.info("AI analysis is not available for this ticket yet.")
+        return
+
+    status = safe_text(ai.get("coverage_status", "NEEDS_INSPECTION")).replace("_", " ")
+    reasoning = safe_text(ai.get("reasoning", "No reasoning supplied."))
+    next_action = safe_text(ai.get("recommended_next_action", "Review manually."))
+    st.markdown(f"""
+    <div class="ai-panel" style="--panel-accent: {accent};">
+        <div class="ai-eyebrow">AI Coverage Status</div>
+        <div class="ai-status">{status}</div>
+        <div class="ai-reason">{reasoning}</div>
+        <div class="ai-next">Next action: {next_action}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        render_score_bar("Confidence", ai.get("confidence_score", 0), "#aab3bd")
+    with c2:
+        render_score_bar("Approval Probability", ai.get("estimated_approval_probability", ticket.get("approval_probability", 0)), "#8fab97")
+    with c3:
+        render_score_bar("Fraud Risk", ai.get("fraud_risk_score", ticket.get("fraud_score", 0)), "#b98c85")
+
+    clauses = ai.get("relevant_warranty_clauses") or []
+    missing_docs = ai.get("missing_documents") or []
+    conditions = ai.get("applicable_conditions") or []
+    insights = ai.get("predictive_insights") or []
+    advice = ai.get("maintenance_advice") or []
+    fraud_signals = ai.get("fraud_signals") or []
+
+    tab_clauses, tab_docs, tab_risk, tab_advice = st.tabs(["Clauses", "Documents", "Risk", "Advice"])
+    with tab_clauses:
+        if clauses:
+            for clause in clauses[:5]:
+                st.markdown(f"- {safe_text(clause)}")
+        else:
+            st.caption("No retrieved clauses were attached.")
+        if conditions:
+            st.markdown("**Applicable conditions**")
+            for condition in conditions:
+                st.markdown(f"- {safe_text(condition)}")
+    with tab_docs:
+        for doc in missing_docs or ["Original purchase invoice", "Serial number photo"]:
+            st.markdown(f"- {safe_text(doc)}")
+    with tab_risk:
+        if fraud_signals:
+            for signal in fraud_signals:
+                st.warning(f"{signal.get('severity', 'risk').upper()}: {signal.get('message', '')}")
+        else:
+            st.success("No major fraud signals detected.")
+    with tab_advice:
+        for item in insights + advice:
+            st.markdown(f"- {safe_text(item)}")
+
+
+def render_warranty_health(health):
+    """Render product warranty health if the backend provides it."""
+    if not health:
+        return
+    score = int(health.get("score", 0))
+    color = "#8fab97" if score >= 80 else "#c3ab7c" if score >= 55 else "#b98c85"
+    render_score_bar(f"Warranty Health: {health.get('label', 'Unknown')}", score, color)
+    st.caption(f"{health.get('remaining_days', 0)} days remaining. {health.get('service_recommendation', '')}")
+
+
 # --- login / register screen ---
 def show_login_page():
     # Spacing and layout centering
@@ -448,7 +697,7 @@ def show_login_page():
             <div style="text-align: center; margin-top: 10px; margin-bottom: 20px;">
                 <img src="{logo_base64}" style="width: 100px; margin-bottom: 12px;" />
                 <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.02em;">VOLTA</h1>
-                <p style="color: #9a9da3; font-size: 0.98rem; margin-top: 4px; font-weight: 400;">Sleek Warranty & Service Ecosystem</p>
+                <p style="color: #9a9da3; font-size: 0.98rem; margin-top: 4px; font-weight: 400;">AI Warranty Intelligence Platform</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -554,16 +803,15 @@ def show_customer_dashboard():
         logout()
     st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
-    # Main dashboard header with a clean underline style
-    st.markdown(f"""
-    <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
-        <h2 style="margin: 0; font-size: 1.8rem; font-weight: 700;">{page}</h2>
-    </div>
-    """, unsafe_allow_html=True)
+    page_copy = {
+        "Register a Product": "Select a product and attach purchase metadata for warranty tracking, QR access, and fraud checks.",
+        "My Products": "Review protected devices, warranty health, QR access, and expiry posture.",
+        "Raise Service Request": "Describe a product issue and get structured AI warranty intelligence before review.",
+        "My Service Requests": "Track claim status, AI reasoning, required documents, and technician updates.",
+    }
+    render_page_header(page, page_copy.get(page, ""), "Customer Portal")
 
     if page == "Register a Product":
-        st.markdown("<p style='color: #9a9da3; font-size: 0.95rem; margin-top: -10px; margin-bottom: 25px;'>Select your product from our premium catalog below and input your purchase details.</p>", unsafe_allow_html=True)
-
         # Get company products
         products_resp = requests.get(f"{API_URL}/products", headers=auth_headers())
         products = products_resp.json()
@@ -591,9 +839,10 @@ def show_customer_dashboard():
                         <div class="product-img-container">
                             <img src="{img_b64}" class="product-img" />
                         </div>
-                        <span class="product-category">{p['category']}</span>
-                        <h4 class="product-title" style="margin: 6px 0; min-height: 48px; display: flex; align-items: center; justify-content: center;">{p['name']}</h4>
-                        <div class="product-meta">Model: {p['model_number']}</div>
+                        <span class="product-category">{safe_text(p['category'])}</span>
+                        <h4 class="product-title" style="margin: 6px 0; min-height: 48px; display: flex; align-items: center; justify-content: center;">{safe_text(p['name'])}</h4>
+                        <div class="product-meta">Model: {safe_text(p['model_number'])}</div>
+                        <div class="product-price" style="margin-top: 8px;">INR {p['price']:,.0f}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -619,6 +868,9 @@ def show_customer_dashboard():
                     with st.form("product_registration_form", border=False):
                         serial_number = st.text_input("Serial Number", placeholder="Found on product sticker/box")
                         purchase_date = st.date_input("Purchase Date", value=date.today(), max_value=date.today())
+                        invoice_number = st.text_input("Invoice Number", placeholder="Optional, improves fraud checks")
+                        seller = st.text_input("Seller / Store", placeholder="Optional, e.g. Company X Store")
+                        gst_number = st.text_input("GST Number", placeholder="Optional invoice GSTIN")
                         submitted = st.form_submit_button("Complete Registration", use_container_width=True)
 
                         if submitted:
@@ -632,6 +884,9 @@ def show_customer_dashboard():
                                         "product_id": selected_product["id"],
                                         "serial_number": serial_number.strip(),
                                         "purchase_date": purchase_date.isoformat(),
+                                        "invoice_number": invoice_number.strip() or None,
+                                        "seller": seller.strip() or None,
+                                        "gst_number": gst_number.strip() or None,
                                     },
                                 )
                                 if resp.status_code == 200:
@@ -642,52 +897,68 @@ def show_customer_dashboard():
                                 else:
                                     st.error(resp.json().get("detail", "Registration failed."))
         else:
-            st.markdown("<br><div style='color: #9a9da3; font-style: italic;'>Select a product card from the catalog above to view registration fields.</div>", unsafe_allow_html=True)
+            render_empty_state("Choose a product to continue", "Select any catalog card above to open the registration form.")
 
     elif page == "My Products":
-        st.markdown("<p style='color: #9a9da3; font-size: 0.95rem; margin-top: -10px; margin-bottom: 25px;'>Active warranty protections and device registration details.</p>", unsafe_allow_html=True)
-
         resp = requests.get(f"{API_URL}/customer/my-products", headers=auth_headers())
         products = resp.json()
 
         # Overview Metrics
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Registered Devices", len(products))
         with col2:
             active_count = sum(1 for p in products if p["warranty_active"])
             st.metric("Protected Under Warranty", active_count)
+        with col3:
+            avg_health = round(sum((p.get("warranty_health") or {}).get("score", 0) for p in products) / len(products)) if products else 0
+            st.metric("Avg Health Score", avg_health)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
         if not products:
-            st.info("You have not registered any products yet.")
+            render_empty_state("No products registered", "Register a device first to activate warranty intelligence and QR access.")
         else:
             for p in products:
-                status_emoji = "✅ Active" if p["warranty_active"] else "⚠️ Expired"
                 badge_color = "#8fab97" if p["warranty_active"] else "#b98c85"
+                badge_bg = "rgba(143, 171, 151, 0.15)" if p["warranty_active"] else "rgba(185, 140, 133, 0.15)"
+                status_label = "Active" if p["warranty_active"] else "Expired"
                 
-                with st.expander(f"{p['product_name']} — Serial: {p['serial_number']}"):
+                with st.expander(f"{p['product_name']} - Serial: {p['serial_number']}"):
                     st.markdown(f"""
                     <div style="padding: 10px 0;">
                         <div style="margin-bottom: 8px;">
                             <span style="font-weight: 500; color: #9a9da3;">Status:</span>
-                            <span style="color: {badge_color}; font-weight: 600;">{status_emoji}</span>
+                            {render_status_pill(status_label, badge_bg, badge_color)}
                         </div>
-                        <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Model Number:</span> {p['model_number']}</div>
-                        <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Date of Purchase:</span> {p['purchase_date']}</div>
+                        <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Model Number:</span> {safe_text(p['model_number'])}</div>
+                        <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Date of Purchase:</span> {safe_text(p['purchase_date'])}</div>
                         <div><span style="font-weight: 500; color: #9a9da3;">Warranty Term:</span> {p['warranty_start']} &rarr; {p['warranty_end']}</div>
                     </div>
                     """, unsafe_allow_html=True)
+                    render_warranty_health(p.get("warranty_health"))
+                    col_qr, col_scan = st.columns([1, 2])
+                    with col_qr:
+                        if st.button("Show QR", key=f"qr_btn_{p['id']}", use_container_width=True):
+                            qr_resp = requests.get(f"{API_URL}/api/v1/products/{p['id']}/qr", headers=auth_headers())
+                            if qr_resp.status_code == 200:
+                                st.session_state[f"qr_svg_{p['id']}"] = qr_resp.json()
+                            else:
+                                st.error("Unable to generate QR code.")
+                    with col_scan:
+                        if p.get("qr_token"):
+                            st.caption(f"Mobile scan route: /api/v1/qr/{p['qr_token']}")
+                    if st.session_state.get(f"qr_svg_{p['id']}"):
+                        qr_data = st.session_state[f"qr_svg_{p['id']}"]
+                        st.markdown(f'<div class="qr-shell">{qr_data["qr_svg"]}</div>', unsafe_allow_html=True)
+                        st.caption(qr_data["product_url"])
 
     elif page == "Raise Service Request":
-        st.markdown("<p style='color: #9a9da3; font-size: 0.95rem; margin-top: -10px; margin-bottom: 25px;'>Describe your issue and submit for automated AI-assisted warranty validation.</p>", unsafe_allow_html=True)
-
         resp = requests.get(f"{API_URL}/customer/my-products", headers=auth_headers())
         products = resp.json()
 
         if not products:
-            st.warning("You must register a product first before requesting service.")
+            render_empty_state("No registered devices", "Register a product before requesting AI-assisted warranty service.")
         else:
             product_map = {f"{p['product_name']} (Serial: {p['serial_number']})": p["id"] for p in products}
             
@@ -712,18 +983,12 @@ def show_customer_dashboard():
                             if r.status_code == 200:
                                 data = r.json()
                                 st.success("Service ticket filed successfully!")
-                                st.subheader("AI Instantiated Coverage Analysis")
-                                st.markdown(f"""
-                                <div style="background: rgba(170, 179, 189,0.08); border: 1px solid rgba(170, 179, 189,0.18); border-radius: 12px; padding: 20px; color: #e6e7e9; line-height: 1.5; margin-top: 15px;">
-                                    {data["ai_analysis"]}
-                                </div>
-                                """, unsafe_allow_html=True)
+                                st.subheader("AI Warranty Intelligence")
+                                render_ai_analysis(data)
                             else:
                                 st.error(r.json().get("detail", "Failed to submit."))
 
     elif page == "My Service Requests":
-        st.markdown("<p style='color: #9a9da3; font-size: 0.95rem; margin-top: -10px; margin-bottom: 25px;'>Track validation and review status for your service requests.</p>", unsafe_allow_html=True)
-
         resp = requests.get(f"{API_URL}/customer/service-requests", headers=auth_headers())
         requests_list = resp.json()
 
@@ -739,36 +1004,33 @@ def show_customer_dashboard():
         st.markdown("<br>", unsafe_allow_html=True)
 
         if not requests_list:
-            st.info("No service requests recorded.")
+            render_empty_state("No service requests", "Create a claim to see AI coverage, evidence requirements, and review status here.")
         else:
             status_colors = {
-                "pending": ("rgba(195, 171, 124, 0.15)", "#c3ab7c", "🟡"),
-                "in_progress": ("rgba(170, 179, 189, 0.15)", "#aab3bd", "🔵"),
-                "resolved": ("rgba(143, 171, 151, 0.15)", "#8fab97", "🟢"),
-                "rejected": ("rgba(185, 140, 133, 0.15)", "#b98c85", "🔴")
+                "pending": ("rgba(195, 171, 124, 0.15)", "#c3ab7c", "Pending"),
+                "in_progress": ("rgba(170, 179, 189, 0.15)", "#aab3bd", "In Review"),
+                "resolved": ("rgba(143, 171, 151, 0.15)", "#8fab97", "Resolved"),
+                "rejected": ("rgba(185, 140, 133, 0.15)", "#b98c85", "Rejected")
             }
             
             for r in requests_list:
-                bg, fg, emoji = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#9a9da3", "⚪"))
+                bg, fg, status_label = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#9a9da3", "Queued"))
                 
-                with st.expander(f"{emoji} {r['product_name']} — {r['status'].upper()}"):
+                with st.expander(f"{r['product_name']} - {r['status'].upper()}"):
                     st.markdown(f"""
                     <div style="padding: 5px 0;">
                         <div style="margin-bottom: 12px;">
                             <span style="font-weight: 500; color: #9a9da3; margin-right: 8px;">Claim Status:</span>
                             <span style="background-color: {bg}; color: {fg}; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
-                                {r['status']}
+                                {status_label}
                             </span>
                         </div>
-                        <div style="margin-bottom: 10px;"><span style="font-weight: 500; color: #9a9da3;">Reported Problem:</span> {r['issue_description']}</div>
-                        <div style="margin-bottom: 10px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border-left: 3px solid #aab3bd;">
-                            <span style="font-weight: 600; color: #aab3bd; display: block; margin-bottom: 4px;">AI Warranty Verdict:</span>
-                            <span style="font-size: 0.9rem; line-height: 1.4; color: #d6d7da;">{r['ai_analysis']}</span>
-                        </div>
+                        <div style="margin-bottom: 10px;"><span style="font-weight: 500; color: #9a9da3;">Reported Problem:</span> {safe_text(r['issue_description'])}</div>
                         {f'<div style="margin-top: 10px;"><span style="font-weight: 500; color: #a99a86;">Technician Notes:</span> {r["admin_notes"]}</div>' if r["admin_notes"] else ''}
                         <div style="font-size: 0.8rem; color: #7b7f86; margin-top: 10px;">Submitted: {r['created_at']}</div>
                     </div>
                     """, unsafe_allow_html=True)
+                    render_ai_analysis(r)
 
 
 # --- admin dashboard ---
@@ -796,6 +1058,38 @@ def show_admin_dashboard():
     st.header("Admin Claims Management Dashboard")
     st.caption("Manage, review, and finalize customer product service requests.")
 
+    analytics_resp = requests.get(f"{API_URL}/admin/analytics", headers=auth_headers())
+    analytics = analytics_resp.json() if analytics_resp.status_code == 200 else {}
+
+    if analytics:
+        a1, a2, a3, a4 = st.columns(4)
+        with a1:
+            st.metric("Registered Products", analytics.get("registered_products", 0))
+        with a2:
+            st.metric("Open Claims", analytics.get("open_claims", 0))
+        with a3:
+            st.metric("Fraud Alerts", analytics.get("fraud_alerts", 0))
+        with a4:
+            st.metric("Approval Rate", f"{analytics.get('approval_rate', 0)}%")
+
+        with st.container(border=True):
+            m1, m2 = st.columns(2)
+            with m1:
+                st.markdown("#### Monthly Registrations")
+                monthly = analytics.get("monthly_registrations") or []
+                if monthly:
+                    st.bar_chart({item["month"]: item["count"] for item in reversed(monthly)})
+                else:
+                    st.caption("No registration trend data yet.")
+            with m2:
+                st.markdown("#### Top Manufacturers")
+                top_makers = analytics.get("top_manufacturers") or []
+                if top_makers:
+                    for item in top_makers:
+                        st.markdown(f"- **{safe_text(item['manufacturer'])}**: {item['count']} registered products")
+                else:
+                    st.caption("No manufacturer data yet.")
+
     status_filter = st.selectbox("Status Filter Queue", ["All", "pending", "in_progress", "resolved", "rejected"])
     params = {} if status_filter == "All" else {"status": status_filter}
 
@@ -819,27 +1113,29 @@ def show_admin_dashboard():
         st.info("No service requests match the filter criteria.")
     else:
         status_colors = {
-            "pending": ("rgba(195, 171, 124, 0.15)", "#c3ab7c", "🟡"),
-            "in_progress": ("rgba(170, 179, 189, 0.15)", "#aab3bd", "🔵"),
-            "resolved": ("rgba(143, 171, 151, 0.15)", "#8fab97", "🟢"),
-            "rejected": ("rgba(185, 140, 133, 0.15)", "#b98c85", "🔴")
+            "pending": ("rgba(195, 171, 124, 0.15)", "#c3ab7c", "Pending"),
+            "in_progress": ("rgba(170, 179, 189, 0.15)", "#aab3bd", "In Review"),
+            "resolved": ("rgba(143, 171, 151, 0.15)", "#8fab97", "Resolved"),
+            "rejected": ("rgba(185, 140, 133, 0.15)", "#b98c85", "Rejected")
         }
 
         for r in requests_list:
-            bg, fg, emoji = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#9a9da3", "⚪"))
+            bg, fg, status_label = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#9a9da3", "Queued"))
             
-            with st.expander(f"{emoji} Ticket #{r['id']} — {r['product_name']} — {r['customer_name']}"):
+            with st.expander(f"Ticket #{r['id']} - {r['product_name']} - {r['customer_name']}"):
                 st.markdown(f"""
                 <div style="padding: 5px 0;">
-                    <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Customer Account:</span> {r['customer_name']}</div>
-                    <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Reported Issue:</span> {r['issue_description']}</div>
-                    <div style="margin-bottom: 12px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border-left: 3px solid #a99a86;">
-                        <span style="font-weight: 600; color: #a99a86; display: block; margin-bottom: 4px;">AI Coverage Analysis Summary:</span>
-                        <span style="font-size: 0.9rem; line-height: 1.4; color: #d6d7da;">{r['ai_analysis']}</span>
+                    <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Customer Account:</span> {safe_text(r['customer_name'])}</div>
+                    <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Reported Issue:</span> {safe_text(r['issue_description'])}</div>
+                    <div style="margin-bottom: 12px;">
+                        <span style="background-color: {bg}; color: {fg}; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                            {status_label}
+                        </span>
                     </div>
                     <div style="font-size: 0.8rem; color: #7b7f86; margin-bottom: 15px;">Submitted: {r['created_at']} | Last Updated: {r['updated_at']}</div>
                 </div>
                 """, unsafe_allow_html=True)
+                render_ai_analysis(r, accent="#a99a86")
 
                 # Balanced action layout: Notes (left) + Status/Save (right)
                 col_notes, col_action = st.columns([2.5, 1])

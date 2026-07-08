@@ -1,9 +1,16 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
 .venv/
 venv/
+env/
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
 # OS
 .DS_Store
@@ -13,5 +20,16 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Env
+# Environment
 .env
+.env.*
+!.env.example
+
+# Database and local runtime artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.log
+data/*.db
+data/*.sqlite*
+data/*.log

@@ -5,6 +5,12 @@ pydantic[email]>=2.9.2
 bcrypt>=4.1.0
 pyjwt>=2.9.0
 requests>=2.32.3
+python-multipart>=0.0.9
+qrcode>=7.4.2
 
 # Frontend (Streamlit)
 streamlit>=1.38.0
+
+# Testing
+pytest>=8.3.0
+httpx>=0.27.2
