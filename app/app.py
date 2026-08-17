@@ -17,68 +17,90 @@ API_URL = "http://localhost:8000"
 
 st.set_page_config(page_title="Volta - Smart Warranty Tracker", page_icon="🛠️", layout="wide")
 
-# helper to inline images as base64 so the CSS can reference them
+# helper to inline files as base64 so the CSS/HTML can reference them
 ASSETS_DIR = Path(__file__).parent / "assets"
 
-def get_image_base64(filename):
+def get_file_base64(filename, mime_type="image/png"):
     path = ASSETS_DIR / filename
     if path.exists():
         with open(path, "rb") as f:
             data = f.read()
-        return f"data:image/png;base64,{base64.b64encode(data).decode()}"
+        return f"data:{mime_type};base64,{base64.b64encode(data).decode()}"
     return ""
+
+def get_image_base64(filename):
+    return get_file_base64(filename, "image/png")
 
 # preload the ones the CSS/sidebar need
 tech_bg_base64 = get_image_base64("tech_bg.png")
 logo_base64 = get_image_base64("volta_logo.png")
 
+# check if local video background exists
+video_bg_path = ASSETS_DIR / "tech_bg.mp4"
+video_bg_base64 = ""
+if video_bg_path.exists():
+    video_bg_base64 = get_file_base64("tech_bg.mp4", "video/mp4")
+
+if video_bg_base64:
+    main_bg_style = "linear-gradient(135deg, var(--app-overlay), var(--app-overlay-strong)) !important;"
+else:
+    main_bg_style = f"linear-gradient(135deg, var(--app-overlay), var(--app-overlay-strong)), url('{tech_bg_base64}') no-repeat center center fixed !important;"
+
 # --- custom CSS (liquid-glass look) ---
 custom_css = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
-/* theme vars */
+/* bold high-contrast theme vars */
 :root {{
     color-scheme: dark;
-    --app-overlay: rgba(4, 8, 14, 0.18);
-    --app-overlay-strong: rgba(4, 8, 14, 0.28);
-    --surface: rgba(255, 255, 255, 0.05);
-    --surface-strong: rgba(255, 255, 255, 0.09);
-    --surface-soft: rgba(255, 255, 255, 0.05);
-    --text-primary: #f3f4f5;
-    --text-secondary: #9a9da3;
-    --text-muted: #7b7f86;
-    --border-color: rgba(255, 255, 255, 0.09);
-    --border-color-strong: rgba(255, 255, 255, 0.16);
-    --sheen: rgba(255, 255, 255, 0.10);
-    --accent: #aab3bd;
-    --accent-strong: #7c8590;
-    --glass-blur: blur(28px) saturate(150%);
-    --glass-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+    --app-overlay: rgba(2, 6, 14, 0.86);
+    --app-overlay-strong: rgba(4, 10, 22, 0.94);
+    --surface: rgba(15, 23, 42, 0.92);
+    --surface-strong: rgba(24, 35, 54, 0.96);
+    --surface-soft: rgba(30, 41, 59, 0.80);
+    --text-primary: #ffffff;
+    --text-secondary: #f1f5f9;
+    --text-muted: #cbd5e1;
+    --border-color: rgba(56, 189, 248, 0.35);
+    --border-color-strong: rgba(56, 189, 248, 0.60);
+    --sheen: rgba(56, 189, 248, 0.16);
+    --accent: #38bdf8;
+    --accent-strong: #0284c7;
+    --glass-blur: blur(32px) saturate(180%);
+    --glass-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }}
 
 div[data-testid="stAppViewBlockContainer"] {{
     padding-top: 2rem !important;
     padding-bottom: 3rem !important;
     max-width: 1280px !important;
+    position: relative !important;
+    z-index: 2 !important;
 }}
 
 /* Global Reset & Background */
 html, body, [data-testid="stAppViewContainer"], .stApp {{
     font-family: 'Outfit', sans-serif !important;
-    background: linear-gradient(135deg, var(--app-overlay), var(--app-overlay-strong)),
-                url('{tech_bg_base64}') no-repeat center center fixed !important;
+    background: {main_bg_style}
     background-size: cover !important;
     color: var(--text-primary) !important;
     transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease !important;
 }}
 
+/* Global Text Shadows & Legibility */
+p, span, div, li {{
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
+    font-weight: 500 !important;
+}}
+
 /* Header Typography */
 h1, h2, h3, h4, h5, h6 {{
     font-family: 'Outfit', sans-serif !important;
-    color: var(--text-primary) !important;
-    font-weight: 600 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
     letter-spacing: -0.015em !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85) !important;
 }}
 
 /* glass panel look for st.container(border=True) */
@@ -87,7 +109,7 @@ div[data-testid="stContainer"] {{
     background: var(--surface) !important;
     backdrop-filter: var(--glass-blur) !important;
     -webkit-backdrop-filter: var(--glass-blur) !important;
-    border: 1px solid var(--border-color) !important;
+    border: 1px solid var(--border-color-strong) !important;
     border-radius: 20px !important;
     padding: 24px !important;
     box-shadow: var(--glass-shadow) !important;
@@ -101,7 +123,7 @@ div[data-testid="stContainer"]::before {{
     inset: 0 !important;
     pointer-events: none !important;
     border-radius: 20px !important;
-    background: linear-gradient(155deg, var(--sheen) 0%, rgba(255, 255, 255, 0) 32%) !important;
+    background: linear-gradient(155deg, var(--sheen) 0%, rgba(255, 255, 255, 0) 40%) !important;
     mix-blend-mode: overlay !important;
 }}
 
@@ -120,19 +142,22 @@ div[data-testid="stTextArea"] textarea,
 div[data-testid="stNumberInput"] input,
 div[data-testid="stDateInput"] input {{
     background-color: var(--surface-strong) !important;
-    border: 1px solid var(--border-color) !important;
-    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color-strong) !important;
+    color: #ffffff !important;
     border-radius: 10px !important;
-    padding: 10px 14px !important;
+    padding: 11px 15px !important;
     font-family: 'Outfit', sans-serif !important;
+    font-size: 0.98rem !important;
+    font-weight: 600 !important;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4) !important;
     transition: all 0.3s ease !important;
 }}
 
 div[data-testid="stTextInput"] input:focus, 
 div[data-testid="stTextArea"] textarea:focus,
 div[data-testid="stNumberInput"] input:focus {{
-    border-color: #aab3bd !important;
-    box-shadow: 0 0 10px rgba(170, 179, 189, 0.25) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.5) !important;
     outline: none !important;
 }}
 
@@ -141,22 +166,23 @@ div[data-testid="stTextInput"] label,
 div[data-testid="stTextArea"] label, 
 div[data-testid="stDateInput"] label,
 div[data-testid="stSelectbox"] label {{
-    font-size: 0.88rem !important;
-    color: var(--text-secondary) !important;
-    font-weight: 500 !important;
+    font-size: 0.95rem !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
     margin-bottom: 6px !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important;
 }}
 
 /* Input Icons injection */
 div[data-testid="stTextInput"]:has(input[type="password"]) input {{
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/></svg>') !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2338bdf8" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/></svg>') !important;
     background-repeat: no-repeat !important;
     background-position: 14px center !important;
     padding-left: 42px !important;
 }}
 
 div[data-testid="stTextInput"]:not(:has(input[type="password"])) input {{
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2394a3b8" viewBox="0 0 16 16"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>') !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%2338bdf8" viewBox="0 0 16 16"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>') !important;
     background-repeat: no-repeat !important;
     background-position: 14px center !important;
     padding-left: 42px !important;
@@ -165,157 +191,170 @@ div[data-testid="stTextInput"]:not(:has(input[type="password"])) input {{
 /* Standard Selectbox overlay */
 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {{
     background-color: var(--surface-strong) !important;
-    border: 1px solid var(--border-color) !important;
+    border: 1px solid var(--border-color-strong) !important;
     border-radius: 10px !important;
-    color: var(--text-primary) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
 }}
 
 /* default buttons */
 div[data-testid="stButton"] button {{
     position: relative !important;
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: rgba(15, 23, 42, 0.95) !important;
     backdrop-filter: blur(16px) saturate(140%) !important;
     -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-color-strong) !important;
+    color: #38bdf8 !important;
+    border: 2px solid rgba(56, 189, 248, 0.5) !important;
     border-radius: 12px !important;
-    padding: 8px 20px !important;
+    padding: 10px 22px !important;
     font-family: 'Outfit', sans-serif !important;
-    font-weight: 500 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    font-weight: 700 !important;
+    font-size: 0.98rem !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }}
 
 div[data-testid="stButton"] button:hover {{
-    background: rgba(170, 179, 189, 0.12) !important;
-    border-color: #aab3bd !important;
-    box-shadow: 0 0 18px rgba(170, 179, 189, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
-    color: #aab3bd !important;
+    background: rgba(56, 189, 248, 0.22) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 22px rgba(56, 189, 248, 0.45) !important;
+    color: #ffffff !important;
     transform: translateY(-1px) !important;
 }}
 
 /* primary buttons (forms + register CTA) */
 div[data-testid="stForm"] div[data-testid="stButton"] button,
 button[key*="register_action_btn"] {{
-    background: linear-gradient(155deg, rgba(255, 255, 255, 0.16) 0%, rgba(170, 179, 189, 0.95) 4%, #9099a3 55%, #7c8590 100%) !important;
-    color: #101113 !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    font-weight: 600 !important;
-    box-shadow: 0 8px 22px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    font-weight: 800 !important;
+    font-size: 1.02rem !important;
+    letter-spacing: 0.03em !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 6px 24px rgba(14, 165, 233, 0.55) !important;
 }}
 
 div[data-testid="stForm"] div[data-testid="stButton"] button:hover,
 button[key*="register_action_btn"]:hover {{
-    box-shadow: 0 10px 26px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    background: linear-gradient(135deg, #1e40af 0%, #0369a1 100%) !important;
+    box-shadow: 0 8px 30px rgba(14, 165, 233, 0.75) !important;
     transform: translateY(-1px) !important;
-    color: #101113 !important;
+    color: #ffffff !important;
 }}
 
 /* Glass Tabs Control */
 button[data-baseweb="tab"] {{
-    color: #9a9da3 !important;
+    color: #cbd5e1 !important;
     font-family: 'Outfit', sans-serif !important;
-    font-weight: 500 !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
     background: transparent !important;
-    border-bottom: 2px solid transparent !important;
+    border-bottom: 3px solid transparent !important;
 }}
 button[aria-selected="true"] {{
-    color: #aab3bd !important;
-    border-bottom-color: #aab3bd !important;
+    color: #38bdf8 !important;
+    border-bottom-color: #38bdf8 !important;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
 }}
 
 /* sidebar */
 section[data-testid="stSidebar"] {{
-    background-color: rgba(18, 18, 20, 0.68) !important;
-    backdrop-filter: blur(32px) saturate(140%) !important;
-    -webkit-backdrop-filter: blur(32px) saturate(140%) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
-    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04) !important;
+    background-color: rgba(6, 12, 24, 0.96) !important;
+    backdrop-filter: blur(32px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.25) !important;
+    box-shadow: 6px 0 30px rgba(0, 0, 0, 0.6) !important;
+    position: relative !important;
+    z-index: 3 !important;
 }}
 
 /* Navigation item vertical lists (accessible tabs layout) */
 .nav-item button {{
     background: transparent !important;
-    color: #9a9da3 !important;
+    color: #f1f5f9 !important;
     border: none !important;
     border-radius: 8px !important;
     text-align: left !important;
     justify-content: flex-start !important;
     padding: 12px 16px !important;
-    font-size: 0.95rem !important;
-    font-weight: 500 !important;
+    font-size: 0.98rem !important;
+    font-weight: 600 !important;
     transition: all 0.2s ease !important;
     box-shadow: none !important;
     margin-bottom: 4px !important;
 }}
 
 .nav-item button:hover {{
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: rgba(56, 189, 248, 0.16) !important;
     color: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
 }}
 
 .nav-item.active button {{
-    background: rgba(170, 179, 189, 0.1) !important;
-    color: #aab3bd !important;
-    border-left: 3px solid #aab3bd !important;
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.3) 0%, rgba(56, 189, 248, 0.08) 100%) !important;
+    color: #38bdf8 !important;
+    border-left: 4px solid #38bdf8 !important;
     border-radius: 0 8px 8px 0 !important;
-    font-weight: 600 !important;
+    font-weight: 800 !important;
     box-shadow: none !important;
 }}
 
 /* Sign Out button wrapper */
 .signout-btn-wrapper button {{
-    background: rgba(185, 140, 133, 0.06) !important;
-    color: #b98c85 !important;
-    border: 1px solid rgba(185, 140, 133, 0.15) !important;
+    background: rgba(239, 68, 68, 0.16) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
     border-radius: 10px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     transition: all 0.2s ease !important;
 }}
 
 .signout-btn-wrapper button:hover {{
-    background: rgba(185, 140, 133, 0.14) !important;
-    border-color: #b98c85 !important;
-    box-shadow: 0 0 12px rgba(185, 140, 133, 0.2) !important;
-    color: #b98c85 !important;
+    background: rgba(239, 68, 68, 0.3) !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.5) !important;
+    color: #ffffff !important;
 }}
 
 /* metrics */
 div[data-testid="stMetricValue"] {{
-    font-size: 2.1rem !important;
-    font-weight: 700 !important;
-    color: #aab3bd !important;
+    font-size: 2.3rem !important;
+    font-weight: 800 !important;
+    color: #38bdf8 !important;
     font-family: 'Outfit', sans-serif !important;
+    text-shadow: 0 2px 12px rgba(56, 189, 248, 0.4) !important;
 }}
 div[data-testid="stMetricLabel"] {{
-    color: #9a9da3 !important;
+    color: #ffffff !important;
     font-family: 'Outfit', sans-serif !important;
     text-transform: uppercase !important;
-    font-size: 0.72rem !important;
-    letter-spacing: 0.05em !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
 }}
 div[data-testid="stMetric"] {{
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)) !important;
+    background: rgba(15, 23, 42, 0.92) !important;
     backdrop-filter: blur(14px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(14px) saturate(130%) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    border-radius: 14px !important;
     min-height: 104px !important;
     padding: 14px 20px !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }}
 
 /* expanders */
 div[data-testid="stExpander"] {{
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.028)) !important;
+    background: rgba(15, 23, 42, 0.90) !important;
     backdrop-filter: blur(16px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    border-radius: 14px !important;
     margin-bottom: 12px !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
 }}
 div[data-testid="stExpander"] details {{
     border: none !important;
@@ -323,9 +362,10 @@ div[data-testid="stExpander"] details {{
 
 /* Social SSO Button Wrappers */
 .google-btn-wrapper button {{
-    background-color: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    color: #e6e7e9 !important;
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="%23EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.327 2.68 1.386 6.614l3.88 3.151z"/><path fill="%23FBBC05" d="M1.386 6.614A7.042 7.042 0 0 0 1 12c0 1.926.4 3.757 1.127 5.417l3.99-3.1A7.02 7.02 0 0 1 5 12c0-1.57.385-3.055 1.055-4.364L1.386 6.614z"/><path fill="%234285F4" d="M12 19.091c-1.895 0-3.59-.727-4.873-1.927l-3.99 3.1C5.127 22.955 8.355 24 12 24c5.255 0 9.71-3.327 11.373-8.082l-4.527-3.509a7.077 7.077 0 0 1-6.846 6.682z"/><path fill="%2334A853" d="M23.373 15.918L24 12c0-.7-.082-1.4-.245-2.091H12v4.182h6.818c-.295 1.582-1.2 2.92-2.545 3.818l4.527 3.509c2.655-2.455 4.573-6.073 4.573-11.518z"/></svg>') !important;
     background-repeat: no-repeat !important;
     background-position: 20px center !important;
@@ -333,9 +373,10 @@ div[data-testid="stExpander"] details {{
 }}
 
 .ms-btn-wrapper button {{
-    background-color: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    color: #e6e7e9 !important;
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" width="14" height="14"><path fill="%23f25022" d="M0 0h11v11H0z"/><path fill="%237fba00" d="M12 0h11v11H12z"/><path fill="%2300a4ef" d="M0 12h11v11H0z"/><path fill="%23ffb900" d="M12 12h11v11H12z"/></svg>') !important;
     background-repeat: no-repeat !important;
     background-position: 20px center !important;
@@ -344,24 +385,24 @@ div[data-testid="stExpander"] details {{
 
 /* Interactive Product Catalog Selection Cards */
 div[data-testid="stContainer"]:has(.product-card.selected) {{
-    border-color: #aab3bd !important;
-    background: rgba(170, 179, 189, 0.06) !important;
-    box-shadow: 0 0 20px rgba(170, 179, 189, 0.15) !important;
+    border-color: #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.16) !important;
+    box-shadow: 0 0 28px rgba(56, 189, 248, 0.4) !important;
 }}
 
 div[data-testid="stContainer"]:has(.product-card):hover {{
-    border-color: rgba(255, 255, 255, 0.22) !important;
+    border-color: rgba(56, 189, 248, 0.5) !important;
     transform: translateY(-3px) !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55) !important;
 }}
 
 /* Style the button inside container when selected */
 div[data-testid="stContainer"]:has(.product-card.selected) button {{
-    background-image: linear-gradient(135deg, #aab3bd, #7c8590) !important;
+    background: linear-gradient(135deg, #1d4ed8, #0284c7) !important;
     color: #ffffff !important;
-    font-weight: 600 !important;
+    font-weight: 800 !important;
     border: none !important;
-    box-shadow: 0 4px 15px rgba(170, 179, 189, 0.25) !important;
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.5) !important;
 }}
 
 .product-img-container {{
@@ -381,67 +422,75 @@ div[data-testid="stContainer"]:has(.product-card.selected) button {{
 }}
 
 .product-category {{
-    font-size: 0.68rem !important;
+    font-size: 0.74rem !important;
     text-transform: uppercase !important;
-    color: #9a9da3 !important;
-    font-weight: 600 !important;
+    color: #38bdf8 !important;
+    font-weight: 800 !important;
     letter-spacing: 0.1em !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important;
 }}
 
 .product-title {{
-    font-size: 0.98rem !important;
+    font-size: 1.08rem !important;
     color: #ffffff !important;
-    font-weight: 500 !important;
+    font-weight: 800 !important;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.85) !important;
 }}
 
 .product-meta {{
-    font-size: 0.76rem !important;
-    color: #7b7f86 !important;
+    font-size: 0.84rem !important;
+    color: #f1f5f9 !important;
+    font-weight: 600 !important;
 }}
 
 .product-price {{
-    font-size: 1.15rem !important;
-    color: #aab3bd !important;
-    font-weight: 600 !important;
+    font-size: 1.25rem !important;
+    color: #38bdf8 !important;
+    font-weight: 800 !important;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9) !important;
 }}
 
 /* Selection Banner Info */
 .selected-product-banner {{
-    background: rgba(170, 179, 189, 0.08) !important;
-    border: 1px solid rgba(170, 179, 189, 0.18) !important;
-    border-radius: 8px !important;
+    background: rgba(56, 189, 248, 0.16) !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    border-radius: 10px !important;
     padding: 12px 18px !important;
     margin-bottom: 15px !important;
-    color: #e6e7e9 !important;
-    font-size: 0.95rem !important;
+    color: #ffffff !important;
+    font-size: 0.98rem !important;
+    font-weight: 700 !important;
 }}
 
 .page-kicker {{
-    color: #aab3bd !important;
-    font-size: 0.76rem !important;
+    color: #38bdf8 !important;
+    font-size: 0.8rem !important;
     text-transform: uppercase !important;
     letter-spacing: 0.12em !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
     margin-bottom: 6px !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8) !important;
 }}
 
 .page-title {{
     margin: 0 !important;
-    font-size: 1.9rem !important;
-    font-weight: 760 !important;
+    font-size: 2.2rem !important;
+    font-weight: 800 !important;
     color: #ffffff !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9) !important;
 }}
 
 .page-subtitle {{
-    color: #9a9da3 !important;
-    font-size: 0.95rem !important;
+    color: #f1f5f9 !important;
+    font-size: 1.02rem !important;
     margin-top: 7px !important;
     max-width: 760px !important;
+    font-weight: 600 !important;
 }}
 
 .page-header {{
     margin-bottom: 22px !important;
-    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.25) !important;
     padding-bottom: 16px !important;
 }}
 
@@ -449,59 +498,62 @@ div[data-testid="stContainer"]:has(.product-card.selected) button {{
     display: inline-flex !important;
     align-items: center !important;
     border-radius: 999px !important;
-    padding: 4px 11px !important;
-    font-size: 0.74rem !important;
-    font-weight: 700 !important;
+    padding: 4px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    letter-spacing: 0.05em !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
 }}
 
 .ai-panel {{
-    background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(0,0,0,0.12)) !important;
-    border: 1px solid rgba(255,255,255,0.09) !important;
-    border-left: 3px solid var(--panel-accent, #aab3bd) !important;
-    border-radius: 10px !important;
-    padding: 16px !important;
-    margin-bottom: 14px !important;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(24, 35, 54, 0.85)) !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    border-left: 4px solid var(--panel-accent, #38bdf8) !important;
+    border-radius: 12px !important;
+    padding: 18px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
 }}
 
 .ai-eyebrow {{
-    font-size: 0.72rem !important;
-    color: #9a9da3 !important;
+    font-size: 0.78rem !important;
+    color: #38bdf8 !important;
     text-transform: uppercase !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
     letter-spacing: 0.08em !important;
 }}
 
 .ai-status {{
     color: #ffffff !important;
-    font-size: 1.08rem !important;
-    font-weight: 760 !important;
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
     margin-top: 4px !important;
 }}
 
 .ai-reason {{
-    color: #d6d7da !important;
-    font-size: 0.92rem !important;
-    line-height: 1.55 !important;
+    color: #f1f5f9 !important;
+    font-size: 0.98rem !important;
+    line-height: 1.6 !important;
+    font-weight: 500 !important;
     margin-top: 9px !important;
 }}
 
 .ai-next {{
-    color: var(--panel-accent, #aab3bd) !important;
-    font-size: 0.86rem !important;
-    font-weight: 650 !important;
+    color: var(--panel-accent, #38bdf8) !important;
+    font-size: 0.92rem !important;
+    font-weight: 800 !important;
     margin-top: 12px !important;
 }}
 
 .empty-state {{
-    border: 1px dashed rgba(255,255,255,0.14) !important;
-    border-radius: 12px !important;
-    padding: 28px !important;
+    border: 1px dashed rgba(56, 189, 248, 0.4) !important;
+    border-radius: 14px !important;
+    padding: 32px !important;
     text-align: center !important;
-    color: #9a9da3 !important;
-    background: rgba(255,255,255,0.025) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    background: rgba(15, 23, 42, 0.85) !important;
 }}
 
 .qr-shell svg {{
@@ -514,6 +566,53 @@ div[data-testid="stContainer"]:has(.product-card.selected) button {{
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
+
+if video_bg_base64:
+    video_bg_html = f"""
+    <video id="volta-bg-video" autoplay loop muted playsinline style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        z-index: 0;
+        opacity: 0.22;
+        pointer-events: none;
+    ">
+        <source src="{video_bg_base64}" type="video/mp4">
+    </video>
+    <script>
+    (function() {{
+        function startVideo() {{
+            const v = document.getElementById("volta-bg-video");
+            if (v) {{
+                v.muted = true;
+                v.defaultMuted = true;
+                v.playsInline = true;
+                const p = v.play();
+                if (p && typeof p.catch === "function") {{
+                    p.catch(function(e) {{
+                        console.log("Autoplay waiting for interaction:", e);
+                    }});
+                }}
+            }}
+        }}
+        startVideo();
+        setTimeout(startVideo, 50);
+        setTimeout(startVideo, 300);
+
+        ["mouseover", "mousemove", "mousedown", "touchstart", "scroll", "click", "DOMContentLoaded"].forEach(function(evt) {{
+            window.addEventListener(evt, startVideo, {{ capture: true }});
+            try {{
+                if (window.parent) window.parent.addEventListener(evt, startVideo, {{ capture: true }});
+            }} catch(e) {{}}
+        }});
+    }})();
+    </script>
+    """
+    st.markdown(video_bg_html, unsafe_allow_html=True)
+
 
 # --- session state ---
 if "token" not in st.session_state:
@@ -572,15 +671,15 @@ def parse_ai_explanation(ticket):
     return {}
 
 
-def render_score_bar(label, value, color="#aab3bd"):
+def render_score_bar(label, value, color="#38bdf8"):
     """Render a compact score bar that matches the existing visual style."""
     value = max(0, min(100, int(value or 0)))
     st.markdown(f"""
     <div style="margin-bottom: 12px;">
-        <div style="display: flex; justify-content: space-between; color: #9a9da3; font-size: 0.82rem; margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; color: #cbd5e1; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">
             <span>{safe_text(label)}</span><span style="color: {color}; font-weight: 700;">{value}%</span>
         </div>
-        <div style="height: 8px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden;">
+        <div style="height: 8px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden;">
             <div style="height: 100%; width: {value}%; background: {color}; border-radius: 999px;"></div>
         </div>
     </div>
@@ -616,7 +715,7 @@ def render_status_pill(label, background, color):
     )
 
 
-def render_ai_analysis(ticket, accent="#aab3bd"):
+def render_ai_analysis(ticket, accent="#38bdf8"):
     """Render the upgraded explainable warranty analysis."""
     ai = parse_ai_explanation(ticket)
     if not ai:
@@ -637,11 +736,11 @@ def render_ai_analysis(ticket, accent="#aab3bd"):
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        render_score_bar("Confidence", ai.get("confidence_score", 0), "#aab3bd")
+        render_score_bar("Confidence", ai.get("confidence_score", 0), "#38bdf8")
     with c2:
-        render_score_bar("Approval Probability", ai.get("estimated_approval_probability", ticket.get("approval_probability", 0)), "#8fab97")
+        render_score_bar("Approval Probability", ai.get("estimated_approval_probability", ticket.get("approval_probability", 0)), "#10b981")
     with c3:
-        render_score_bar("Fraud Risk", ai.get("fraud_risk_score", ticket.get("fraud_score", 0)), "#b98c85")
+        render_score_bar("Fraud Risk", ai.get("fraud_risk_score", ticket.get("fraud_score", 0)), "#f87171")
 
     clauses = ai.get("relevant_warranty_clauses") or []
     missing_docs = ai.get("missing_documents") or []
@@ -680,7 +779,7 @@ def render_warranty_health(health):
     if not health:
         return
     score = int(health.get("score", 0))
-    color = "#8fab97" if score >= 80 else "#c3ab7c" if score >= 55 else "#b98c85"
+    color = "#10b981" if score >= 80 else "#f59e0b" if score >= 55 else "#f87171"
     render_score_bar(f"Warranty Health: {health.get('label', 'Unknown')}", score, color)
     st.caption(f"{health.get('remaining_days', 0)} days remaining. {health.get('service_recommendation', '')}")
 
@@ -697,7 +796,7 @@ def show_login_page():
             <div style="text-align: center; margin-top: 10px; margin-bottom: 20px;">
                 <img src="{logo_base64}" style="width: 100px; margin-bottom: 12px;" />
                 <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.02em;">VOLTA</h1>
-                <p style="color: #9a9da3; font-size: 0.98rem; margin-top: 4px; font-weight: 400;">AI Warranty Intelligence Platform</p>
+                <p style="color: #cbd5e1; font-size: 1rem; margin-top: 4px; font-weight: 500;">AI Warranty Intelligence Platform</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -730,7 +829,7 @@ def show_login_page():
 
                 # Default credentials caption
                 st.markdown("""
-                <div style="text-align: center; margin-top: 10px; margin-bottom: 15px; font-size: 0.78rem; color: #7b7f86;">
+                <div style="text-align: center; margin-top: 10px; margin-bottom: 15px; font-size: 0.82rem; color: #94a3b8; font-weight: 500;">
                     Demo Admin Account: username <b>admin</b> / password <b>admin123</b>
                 </div>
                 """, unsafe_allow_html=True)
@@ -770,15 +869,15 @@ def show_login_page():
 def show_customer_dashboard():
     # Sidebar profile box
     st.sidebar.markdown(f"""
-    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 20px; margin-top: 15px; margin-bottom: 24px; text-align: center;">
+    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 16px; padding: 20px; margin-top: 15px; margin-bottom: 24px; text-align: center;">
         <img src="{logo_base64}" style="width: 58px; margin-bottom: 8px;" />
         <div style="font-weight: 700; color: #ffffff; font-size: 1.1rem; margin-top: 4px; letter-spacing: -0.01em;">{st.session_state.full_name}</div>
-        <div style="color: #aab3bd; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px;">Customer Portal</div>
+        <div style="color: #38bdf8; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px;">Customer Portal</div>
     </div>
     """, unsafe_allow_html=True)
 
     # Sidebar custom vertical navigation tabs
-    st.sidebar.markdown("<div style='margin-bottom: 10px; font-size: 0.78rem; color: #7b7f86; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;'>Navigation</div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='margin-bottom: 10px; font-size: 0.8rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;'>Navigation</div>", unsafe_allow_html=True)
 
     pages = {
         "Register a Product": "📥  Register a Product",
@@ -861,7 +960,7 @@ def show_customer_dashboard():
                     st.markdown(f"""
                     <div style="margin-bottom: 18px;">
                         <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #ffffff;">Register Selected Device</h3>
-                        <p style="color: #9a9da3; font-size: 0.9rem; margin-top: 4px; margin-bottom: 0;">Provide purchase details for <b>{selected_product['name']} ({selected_product['model_number']})</b></p>
+                        <p style="color: #cbd5e1; font-size: 0.92rem; margin-top: 4px; margin-bottom: 0;">Provide purchase details for <b>{selected_product['name']} ({selected_product['model_number']})</b></p>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -920,20 +1019,20 @@ def show_customer_dashboard():
             render_empty_state("No products registered", "Register a device first to activate warranty intelligence and QR access.")
         else:
             for p in products:
-                badge_color = "#8fab97" if p["warranty_active"] else "#b98c85"
-                badge_bg = "rgba(143, 171, 151, 0.15)" if p["warranty_active"] else "rgba(185, 140, 133, 0.15)"
+                badge_color = "#10b981" if p["warranty_active"] else "#f87171"
+                badge_bg = "rgba(16, 185, 129, 0.2)" if p["warranty_active"] else "rgba(239, 68, 68, 0.2)"
                 status_label = "Active" if p["warranty_active"] else "Expired"
                 
                 with st.expander(f"{p['product_name']} - Serial: {p['serial_number']}"):
                     st.markdown(f"""
                     <div style="padding: 10px 0;">
                         <div style="margin-bottom: 8px;">
-                            <span style="font-weight: 500; color: #9a9da3;">Status:</span>
+                            <span style="font-weight: 600; color: #cbd5e1;">Status:</span>
                             {render_status_pill(status_label, badge_bg, badge_color)}
                         </div>
-                        <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Model Number:</span> {safe_text(p['model_number'])}</div>
-                        <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Date of Purchase:</span> {safe_text(p['purchase_date'])}</div>
-                        <div><span style="font-weight: 500; color: #9a9da3;">Warranty Term:</span> {p['warranty_start']} &rarr; {p['warranty_end']}</div>
+                        <div style="margin-bottom: 8px;"><span style="font-weight: 600; color: #cbd5e1;">Model Number:</span> {safe_text(p['model_number'])}</div>
+                        <div style="margin-bottom: 8px;"><span style="font-weight: 600; color: #cbd5e1;">Date of Purchase:</span> {safe_text(p['purchase_date'])}</div>
+                        <div><span style="font-weight: 600; color: #cbd5e1;">Warranty Term:</span> {p['warranty_start']} &rarr; {p['warranty_end']}</div>
                     </div>
                     """, unsafe_allow_html=True)
                     render_warranty_health(p.get("warranty_health"))
@@ -1007,27 +1106,27 @@ def show_customer_dashboard():
             render_empty_state("No service requests", "Create a claim to see AI coverage, evidence requirements, and review status here.")
         else:
             status_colors = {
-                "pending": ("rgba(195, 171, 124, 0.15)", "#c3ab7c", "Pending"),
-                "in_progress": ("rgba(170, 179, 189, 0.15)", "#aab3bd", "In Review"),
-                "resolved": ("rgba(143, 171, 151, 0.15)", "#8fab97", "Resolved"),
-                "rejected": ("rgba(185, 140, 133, 0.15)", "#b98c85", "Rejected")
+                "pending": ("rgba(245, 158, 11, 0.2)", "#fbbf24", "Pending"),
+                "in_progress": ("rgba(56, 189, 248, 0.2)", "#38bdf8", "In Review"),
+                "resolved": ("rgba(16, 185, 129, 0.2)", "#10b981", "Resolved"),
+                "rejected": ("rgba(239, 68, 68, 0.2)", "#f87171", "Rejected")
             }
             
             for r in requests_list:
-                bg, fg, status_label = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#9a9da3", "Queued"))
+                bg, fg, status_label = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#cbd5e1", "Queued"))
                 
                 with st.expander(f"{r['product_name']} - {r['status'].upper()}"):
                     st.markdown(f"""
                     <div style="padding: 5px 0;">
                         <div style="margin-bottom: 12px;">
-                            <span style="font-weight: 500; color: #9a9da3; margin-right: 8px;">Claim Status:</span>
-                            <span style="background-color: {bg}; color: {fg}; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                            <span style="font-weight: 600; color: #cbd5e1; margin-right: 8px;">Claim Status:</span>
+                            <span style="background-color: {bg}; color: {fg}; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
                                 {status_label}
                             </span>
                         </div>
-                        <div style="margin-bottom: 10px;"><span style="font-weight: 500; color: #9a9da3;">Reported Problem:</span> {safe_text(r['issue_description'])}</div>
-                        {f'<div style="margin-top: 10px;"><span style="font-weight: 500; color: #a99a86;">Technician Notes:</span> {r["admin_notes"]}</div>' if r["admin_notes"] else ''}
-                        <div style="font-size: 0.8rem; color: #7b7f86; margin-top: 10px;">Submitted: {r['created_at']}</div>
+                        <div style="margin-bottom: 10px;"><span style="font-weight: 600; color: #cbd5e1;">Reported Problem:</span> {safe_text(r['issue_description'])}</div>
+                        {f'<div style="margin-top: 10px;"><span style="font-weight: 600; color: #38bdf8;">Technician Notes:</span> {r["admin_notes"]}</div>' if r["admin_notes"] else ''}
+                        <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 10px;">Submitted: {r['created_at']}</div>
                     </div>
                     """, unsafe_allow_html=True)
                     render_ai_analysis(r)
@@ -1037,19 +1136,19 @@ def show_customer_dashboard():
 def show_admin_dashboard():
     # Sidebar Design
     st.sidebar.markdown(f"""
-    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 20px; margin-top: 15px; margin-bottom: 24px; text-align: center;">
+    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 16px; padding: 20px; margin-top: 15px; margin-bottom: 24px; text-align: center;">
         <img src="{logo_base64}" style="width: 58px; margin-bottom: 8px;" />
         <div style="font-weight: 700; color: #ffffff; font-size: 1.1rem; margin-top: 4px; letter-spacing: -0.01em;">{st.session_state.full_name}</div>
-        <div style="color: #a99a86; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px;">Admin Panel</div>
+        <div style="color: #38bdf8; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px;">Admin Panel</div>
     </div>
     """, unsafe_allow_html=True)
     
-    st.sidebar.markdown("<div style='margin-bottom: 10px; font-size: 0.78rem; color: #7b7f86; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;'>Navigation</div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='margin-bottom: 10px; font-size: 0.8rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;'>Navigation</div>", unsafe_allow_html=True)
     st.sidebar.markdown("<div class='nav-item active'>", unsafe_allow_html=True)
     st.sidebar.button("📋  Claims Queue", use_container_width=True, disabled=True)
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
-    st.sidebar.markdown("<br><hr style='border-color: rgba(255,255,255,0.05);'><br>", unsafe_allow_html=True)
+    st.sidebar.markdown("<br><hr style='border-color: rgba(56, 189, 248, 0.2);'><br>", unsafe_allow_html=True)
     st.sidebar.markdown('<div class="signout-btn-wrapper">', unsafe_allow_html=True)
     if st.sidebar.button("Sign Out", use_container_width=True, key="sign_out_btn"):
         logout()
@@ -1113,29 +1212,29 @@ def show_admin_dashboard():
         st.info("No service requests match the filter criteria.")
     else:
         status_colors = {
-            "pending": ("rgba(195, 171, 124, 0.15)", "#c3ab7c", "Pending"),
-            "in_progress": ("rgba(170, 179, 189, 0.15)", "#aab3bd", "In Review"),
-            "resolved": ("rgba(143, 171, 151, 0.15)", "#8fab97", "Resolved"),
-            "rejected": ("rgba(185, 140, 133, 0.15)", "#b98c85", "Rejected")
+            "pending": ("rgba(245, 158, 11, 0.2)", "#fbbf24", "Pending"),
+            "in_progress": ("rgba(56, 189, 248, 0.2)", "#38bdf8", "In Review"),
+            "resolved": ("rgba(16, 185, 129, 0.2)", "#10b981", "Resolved"),
+            "rejected": ("rgba(239, 68, 68, 0.2)", "#f87171", "Rejected")
         }
 
         for r in requests_list:
-            bg, fg, status_label = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#9a9da3", "Queued"))
+            bg, fg, status_label = status_colors.get(r['status'], ("rgba(155, 157, 162,0.15)", "#cbd5e1", "Queued"))
             
             with st.expander(f"Ticket #{r['id']} - {r['product_name']} - {r['customer_name']}"):
                 st.markdown(f"""
                 <div style="padding: 5px 0;">
-                    <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Customer Account:</span> {safe_text(r['customer_name'])}</div>
-                    <div style="margin-bottom: 8px;"><span style="font-weight: 500; color: #9a9da3;">Reported Issue:</span> {safe_text(r['issue_description'])}</div>
+                    <div style="margin-bottom: 8px;"><span style="font-weight: 600; color: #cbd5e1;">Customer Account:</span> {safe_text(r['customer_name'])}</div>
+                    <div style="margin-bottom: 8px;"><span style="font-weight: 600; color: #cbd5e1;">Reported Issue:</span> {safe_text(r['issue_description'])}</div>
                     <div style="margin-bottom: 12px;">
-                        <span style="background-color: {bg}; color: {fg}; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">
+                        <span style="background-color: {bg}; color: {fg}; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">
                             {status_label}
                         </span>
                     </div>
-                    <div style="font-size: 0.8rem; color: #7b7f86; margin-bottom: 15px;">Submitted: {r['created_at']} | Last Updated: {r['updated_at']}</div>
+                    <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 15px;">Submitted: {r['created_at']} | Last Updated: {r['updated_at']}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                render_ai_analysis(r, accent="#a99a86")
+                render_ai_analysis(r, accent="#38bdf8")
 
                 # Balanced action layout: Notes (left) + Status/Save (right)
                 col_notes, col_action = st.columns([2.5, 1])
